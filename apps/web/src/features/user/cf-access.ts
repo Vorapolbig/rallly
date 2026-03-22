@@ -10,13 +10,18 @@ import { headers } from "next/headers";
 export async function getAdminUserFromCFHeaders() {
   const headersList = await headers();
 
-  // In development, fall back to mock values if no real CF headers
+  // In development, fall back to mock values if no real CF headers.
+  // CF_ACCESS_DEV_EMAIL can be set for local production builds that bypass CF Access.
+  const devEmail =
+    process.env.NODE_ENV === "development"
+      ? "admin@example.com"
+      : (process.env.CF_ACCESS_DEV_EMAIL ?? null);
+
   const email =
-    headersList.get("CF-Access-Authenticated-User-Email") ??
-    (process.env.NODE_ENV === "development" ? "admin@example.com" : null);
+    headersList.get("CF-Access-Authenticated-User-Email") ?? devEmail;
   const uuid =
     headersList.get("CF-Access-Authenticated-User-UUID") ??
-    (process.env.NODE_ENV === "development" ? "dev-uuid-12345" : null);
+    (devEmail ? "dev-uuid-12345" : null);
 
   if (!email || !uuid) {
     return null;

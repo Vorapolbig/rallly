@@ -35,32 +35,21 @@ import { OptimizedAvatarImage } from "@/components/optimized-avatar-image";
 import { useUser } from "@/components/user-provider";
 import { useTheme } from "@/features/theme/client";
 import { Trans } from "@/i18n/client";
-import { useFeatureFlag } from "@/lib/feature-flags/client";
 
 export const UserDropdown = ({ className }: { className?: string }) => {
   const { user } = useUser();
   const posthog = usePostHog();
   const { theme, setTheme } = useTheme();
 
-  const isRegistrationEnabled = useFeatureFlag("registration");
-
   if (!user || user.isGuest) {
     return (
       <div className="flex items-center gap-x-2">
         <Link
-          href={`/login?redirectTo=${encodeURIComponent("/new")}`}
+          href="/cdn-cgi/access/login"
           className={buttonVariants({ variant: "ghost" })}
         >
           <Trans i18nKey="login" defaults="Login" />
         </Link>
-        {isRegistrationEnabled ? (
-          <Link
-            href={`/register?redirectTo=${encodeURIComponent("/new")}`}
-            className={buttonVariants({ variant: "primary" })}
-          >
-            <Trans i18nKey="signUp" defaults="Sign up" />
-          </Link>
-        ) : null}
       </div>
     );
   }
