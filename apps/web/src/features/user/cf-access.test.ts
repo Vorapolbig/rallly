@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { headers } from "next/headers";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAdminUserFromCFHeaders, isCFAccessEnabled } from "./cf-access";
 
 vi.mock("next/headers", () => ({
@@ -49,11 +49,7 @@ describe("CF Access Helpers", () => {
     });
 
     it("should return null if UUID header is missing (production)", async () => {
-      const originalEnv = process.env.NODE_ENV;
-      Object.defineProperty(process.env, "NODE_ENV", {
-        value: "production",
-        configurable: true,
-      });
+      vi.stubEnv("NODE_ENV", "production");
 
       const mockHeadersMap = new Map([
         ["CF-Access-Authenticated-User-Email", "admin@example.com"],
@@ -67,10 +63,7 @@ describe("CF Access Helpers", () => {
 
       expect(result).toBeNull();
 
-      Object.defineProperty(process.env, "NODE_ENV", {
-        value: originalEnv,
-        configurable: true,
-      });
+      vi.unstubAllEnvs();
     });
   });
 
