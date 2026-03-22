@@ -18,7 +18,7 @@ enum ScheduledEventInviteStatus {
 model ScheduledEvent {
   id          String               @id @default(cuid())
   userId      String               @map("user_id")
-  spaceId     String               @map("space_id")
+  spaceId     String?              @map("space_id") // kept nullable for migration compatibility
   title       String
   description String?
   location    String?
@@ -34,12 +34,10 @@ model ScheduledEvent {
   uid         String               @unique
 
   user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  space            Space                  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   rescheduledDates RescheduledEventDate[]
   invites          ScheduledEventInvite[]
   polls            Poll[]
 
-  @@index([spaceId], type: Hash)
   @@index([userId], type: Hash)
   @@map("scheduled_events")
 }
@@ -70,7 +68,7 @@ model ScheduledEventInvite {
   updatedAt        DateTime                   @updatedAt @map("updated_at")
 
   scheduledEvent ScheduledEvent @relation(fields: [scheduledEventId], references: [id], onDelete: Cascade)
-  user           User?          @relation(fields: [inviteeId], references: [id], onDelete: SetNull) // Optional relation to User model
+  user           User?          @relation(fields: [inviteeId], references: [id], onDelete: SetNull)
 
   @@index([scheduledEventId])
   @@index([inviteeId])

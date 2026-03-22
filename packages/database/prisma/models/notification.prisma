@@ -1,11 +1,2 @@
-model UserNotificationPreferences {
-  id        String   @id @default(cuid())
-  userId    String   @unique @map("user_id")
-  prefs     Json     @default("{}") @map("prefs")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_notification_preferences")
-}
+// UserNotificationPreferences model removed.
+// No email notifications in simplified CF Access deployment.
