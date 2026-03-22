@@ -14,7 +14,6 @@ import {
   CalendarCheck2Icon,
   ChevronDownIcon,
   CircleStopIcon,
-  CopyIcon,
   DownloadIcon,
   PencilIcon,
   PlayIcon,
@@ -25,11 +24,8 @@ import {
 import Link from "next/link";
 import * as React from "react";
 
-import { DuplicateDialog } from "@/app/[locale]/(app)/(optional-space)/poll/[urlId]/duplicate-dialog";
 import { SchedulePollDialog } from "@/components/poll/manage-poll/schedule-poll-dialog";
-import { ProBadge } from "@/components/pro-badge";
 import { usePoll } from "@/contexts/poll";
-import { useBilling } from "@/features/billing/client";
 import { Trans } from "@/i18n/client";
 import { trpc } from "@/trpc/client";
 import { DeletePollDialog } from "./manage-poll/delete-poll-dialog";
@@ -122,9 +118,7 @@ const ManagePoll: React.FunctionComponent<{
   const poll = usePoll();
 
   const [showDeletePollDialog, setShowDeletePollDialog] = React.useState(false);
-  const duplicateDialog = useDialog();
   const scheduleDialog = useDialog();
-  const { showPayWall, isFree } = useBilling();
   const posthog = usePostHog();
   const { exportToCsv } = useCsvExporter();
 
@@ -167,23 +161,16 @@ const ManagePoll: React.FunctionComponent<{
               <DropdownMenuItem
                 disabled={!!poll.event}
                 onClick={() => {
-                  if (isFree) {
-                    showPayWall();
-                    posthog?.capture("trigger paywall", {
-                      poll_id: poll.id,
-                      from: "manage-poll",
-                      action: "schedule",
-                    });
-                  } else {
-                    scheduleDialog.trigger();
-                  }
+                  posthog?.capture("manage_poll:schedule_button_click", {
+                    poll_id: poll.id,
+                  });
+                  scheduleDialog.trigger();
                 }}
               >
                 <Icon>
                   <CalendarCheck2Icon />
                 </Icon>
                 <Trans i18nKey="schedulePoll" defaults="Schedule" />
-                {isFree ? <ProBadge /> : null}
               </DropdownMenuItem>
               <OpenCloseToggle />
             </>
@@ -192,25 +179,6 @@ const ManagePoll: React.FunctionComponent<{
           <DropdownMenuItem onClick={exportToCsv}>
             <DropdownMenuItemIconLabel icon={DownloadIcon}>
               <Trans i18nKey="exportToCsv" />
-            </DropdownMenuItemIconLabel>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              if (isFree) {
-                showPayWall();
-                posthog?.capture("trigger paywall", {
-                  poll_id: poll.id,
-                  action: "duplicate",
-                  from: "manage-poll",
-                });
-              } else {
-                duplicateDialog.trigger();
-              }
-            }}
-          >
-            <DropdownMenuItemIconLabel icon={CopyIcon}>
-              <Trans i18nKey="duplicate" defaults="Duplicate" />
-              {isFree ? <ProBadge /> : null}
             </DropdownMenuItemIconLabel>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -229,11 +197,6 @@ const ManagePoll: React.FunctionComponent<{
         urlId={poll.id}
         open={showDeletePollDialog}
         onOpenChange={setShowDeletePollDialog}
-      />
-      <DuplicateDialog
-        pollId={poll.id}
-        pollTitle={poll.title}
-        {...duplicateDialog.dialogProps}
       />
       <SchedulePollDialog {...scheduleDialog.dialogProps} />
     </>

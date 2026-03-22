@@ -2,10 +2,8 @@
 
 import { Tile, TileDescription, TileGrid, TileTitle } from "@rallly/ui/tile";
 import {
-  BillingPageIcon,
   CreatePageIcon,
   EventPageIcon,
-  MembersPageIcon,
   PollPageIcon,
   SettingsPageIcon,
 } from "@/app/components/page-icons";
@@ -17,13 +15,10 @@ import {
 } from "@/app/components/page-layout";
 import { HoverPrefetchLink } from "@/components/hover-prefetch-link";
 import { Trans } from "@/i18n/client";
-import { IfFeatureEnabled, useFeatureFlag } from "@/lib/feature-flags/client";
 import { trpc } from "@/trpc/client";
-import { PasswordSetupAlert } from "./password-setup-alert";
 
 export function DashboardHome() {
   const [stats] = trpc.dashboard.stats.useSuspenseQuery();
-  const isEmailLoginEnabled = useFeatureFlag("emailLogin");
 
   return (
     <PageContainer>
@@ -33,11 +28,6 @@ export function DashboardHome() {
         </PageTitle>
       </PageHeader>
       <PageContent className="space-y-8">
-        <div className="space-y-4">
-          {stats.hasNoAccounts && isEmailLoginEnabled ? (
-            <PasswordSetupAlert />
-          ) : null}
-        </div>
         <div className="space-y-4">
           <h2 className="text-muted-foreground text-sm">
             <Trans i18nKey="homeActionsTitle" defaults="Actions" />
@@ -97,49 +87,13 @@ export function DashboardHome() {
           </h2>
           <TileGrid>
             <Tile asChild>
-              <HoverPrefetchLink href="/settings/general">
+              <HoverPrefetchLink href="/settings/profile">
                 <SettingsPageIcon />
                 <TileTitle>
                   <Trans i18nKey="settings" defaults="Settings" />
                 </TileTitle>
               </HoverPrefetchLink>
             </Tile>
-
-            <Tile asChild>
-              <HoverPrefetchLink href="/settings/members">
-                <MembersPageIcon />
-                <TileTitle>
-                  <Trans i18nKey="members" defaults="Members" />
-                </TileTitle>
-                <TileDescription>
-                  <Trans
-                    i18nKey="memberCount"
-                    defaults="{count, plural, =0 {No members} one {1 member} other {# members}}"
-                    values={{ count: stats.memberCount }}
-                  />
-                </TileDescription>
-              </HoverPrefetchLink>
-            </Tile>
-
-            <IfFeatureEnabled feature="billing">
-              {stats.canManageBilling && (
-                <Tile asChild>
-                  <HoverPrefetchLink href="/settings/billing">
-                    <BillingPageIcon />
-                    <TileTitle>
-                      <Trans i18nKey="billing" defaults="Billing" />
-                    </TileTitle>
-                    <TileDescription>
-                      <Trans
-                        i18nKey="seatCount"
-                        defaults="{count, plural, =0 {No seats} one {1 seat} other {# seats}}"
-                        values={{ count: stats.seatCount }}
-                      />
-                    </TileDescription>
-                  </HoverPrefetchLink>
-                </Tile>
-              )}
-            </IfFeatureEnabled>
           </TileGrid>
         </div>
       </PageContent>
