@@ -705,13 +705,12 @@ export const polls = router({
                     status: (
                       {
                         yes: "accepted",
-                        ifNeedBe: "tentative",
                         no: "declined",
                       } as const
                     )[
                       p.votes.find((v) => v.optionId === input.optionId)
                         ?.type ?? "no"
-                    ],
+                    ] ?? "declined",
                   })),
               },
             },

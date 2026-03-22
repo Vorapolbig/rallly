@@ -1,23 +1,16 @@
 import type { Participant, VoteType } from "@rallly/database";
 import { prisma } from "@rallly/database";
-import { createLogger } from "@rallly/logger";
-import { absoluteUrl } from "@rallly/utils/absolute-url";
 import { TRPCError } from "@trpc/server";
-import { after } from "next/server";
 import * as z from "zod";
 import { posthog } from "@/features/analytics/posthog";
-import { getNotificationRecipient } from "@/features/notifications/queries";
 import { hasPollAdminAccess } from "@/features/poll/query";
-import { getEmailClient } from "@/utils/emails";
 import {
   createRateLimitMiddleware,
   publicProcedure,
   requireUserMiddleware,
   router,
 } from "../../trpc";
-import { createParticipantEditToken, resolveUserId } from "./utils";
-
-const logger = createLogger("participants");
+import { resolveUserId } from "./utils";
 
 const MAX_PARTICIPANTS = 1000;
 
@@ -57,46 +50,6 @@ async function canModifyParticipant(participantId: string, userId: string) {
   }
 
   return participant;
-}
-
-async function sendNewResponseNotificationEmail({
-  pollId,
-  pollTitle,
-  participantName,
-  excludeUserId,
-}: {
-  pollId: string;
-  pollTitle: string;
-  participantName: string;
-  excludeUserId: string;
-}) {
-  try {
-    const recipient = await getNotificationRecipient({
-      pollId,
-      type: "poll.response.submitted",
-      excludeUserId,
-    });
-
-    if (!recipient) {
-      return;
-    }
-
-    const emailClient = await getEmailClient(recipient.locale ?? undefined);
-    await emailClient.sendTemplate("NewParticipantEmail", {
-      to: recipient.email,
-      props: {
-        participantName,
-        pollUrl: absoluteUrl(`/poll/${pollId}`),
-        disableNotificationsUrl: absoluteUrl("/settings/notifications"),
-        title: pollTitle,
-      },
-    });
-  } catch (err) {
-    logger.error(
-      { error: err, pollId },
-      "Failed to send new response notification email",
-    );
-  }
 }
 
 export const participants = router({
@@ -215,7 +168,7 @@ export const participants = router({
         votes: z
           .object({
             optionId: z.string(),
-            type: z.enum(["yes", "no", "ifNeedBe"]),
+            type: z.enum(["yes", "no"]),
           })
           .array(),
       }),
@@ -292,35 +245,6 @@ export const participants = router({
 
         const totalResponses = participantCount + 1;
 
-        if (email) {
-          const token = await createParticipantEditToken(ctx.user.id);
-
-          const emailClient = await getEmailClient(
-            ctx.user.locale ?? undefined,
-          );
-
-          after(() =>
-            emailClient.sendTemplate("NewParticipantConfirmationEmail", {
-              to: email,
-              props: {
-                title: participant.poll.title,
-                editSubmissionUrl: absoluteUrl(
-                  `/invite/${participant.poll.id}?token=${token}`,
-                ),
-              },
-            }),
-          );
-        }
-
-        after(() =>
-          sendNewResponseNotificationEmail({
-            pollId,
-            pollTitle: participant.poll.title,
-            participantName: participant.name,
-            excludeUserId: ctx.user.id,
-          }),
-        );
-
         posthog()?.groupIdentify({
           groupType: "poll",
           groupKey: pollId,
@@ -378,7 +302,7 @@ export const participants = router({
         votes: z
           .object({
             optionId: z.string(),
-            type: z.enum(["yes", "no", "ifNeedBe"]),
+            type: z.enum(["yes", "no"]),
           })
           .array(),
         token: z.string().optional(),
