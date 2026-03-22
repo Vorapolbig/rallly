@@ -4,12 +4,7 @@ import { TRPCError } from "@trpc/server";
 import * as z from "zod";
 import { posthog } from "@/features/analytics/posthog";
 import { hasPollAdminAccess } from "@/features/poll/query";
-import {
-  createRateLimitMiddleware,
-  publicProcedure,
-  requireUserMiddleware,
-  router,
-} from "../../trpc";
+import { createRateLimitMiddleware, publicProcedure, router } from "../../trpc";
 import { resolveUserId } from "./utils";
 
 const MAX_PARTICIPANTS = 1000;
@@ -158,7 +153,6 @@ export const participants = router({
     }),
   add: publicProcedure
     .use(createRateLimitMiddleware("add_participant", 10, "1 h"))
-    .use(requireUserMiddleware)
     .input(
       z.object({
         pollId: z.string(),
@@ -210,8 +204,8 @@ export const participants = router({
             name: name,
             email,
             timeZone,
-            userId: ctx.user.id,
-            locale: ctx.user.locale ?? undefined,
+            userId: ctx.user?.id,
+            locale: ctx.user?.locale ?? undefined,
             votes: {
               createMany: {
                 data: validVotes.map(({ optionId, type }) => ({
@@ -255,7 +249,7 @@ export const participants = router({
 
         // Track participant addition analytics
         posthog()?.capture({
-          distinctId: ctx.user.id,
+          distinctId: ctx.user?.id ?? participant.id,
           event: "poll_response_submit",
           properties: {
             participant_id: participant.id,

@@ -23,7 +23,6 @@ import { useTranslation } from "@/i18n/client";
 import { useDayjs } from "@/utils/dayjs";
 import { useAddParticipantMutation } from "./poll/mutations";
 import VoteIcon from "./poll/vote-icon";
-import { useUser } from "./user-provider";
 
 const requiredEmailSchema = z.object({
   requireEmail: z.literal(true),
@@ -94,18 +93,12 @@ export const NewParticipantForm = (props: NewParticipantModalProps) => {
 
   const isEmailRequired = poll.requireParticipantEmail;
   const { timeZone } = useDayjs();
-  const { user } = useUser();
-  const isLoggedIn = user && !user.isGuest;
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       requireEmail: isEmailRequired,
-      ...(isLoggedIn
-        ? { name: user.name, email: user.email ?? "" }
-        : {
-            name: "",
-            email: "",
-          }),
+      name: "",
+      email: "",
     },
   });
 
