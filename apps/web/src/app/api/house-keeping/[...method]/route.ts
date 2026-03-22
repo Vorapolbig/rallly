@@ -40,17 +40,6 @@ app.get("/delete-inactive-polls", async (c) => {
           startTime: { gt: new Date() },
         },
       },
-      // We don't delete polls that belong to a space with an active subscription
-      OR: [
-        { spaceId: null },
-        {
-          space: {
-            tier: {
-              not: "pro",
-            },
-          },
-        },
-      ],
       // Poll is inactive (not updated AND not viewed in the last 30 days)
       updatedAt: { lt: thirtyDaysAgo },
       views: {

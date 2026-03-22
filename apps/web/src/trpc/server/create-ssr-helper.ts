@@ -4,9 +4,7 @@ import { cache } from "react";
 import superjson from "superjson";
 import { getUserSession } from "@/features/user/data";
 import { InvalidSessionError } from "@/lib/errors/invalid-session-error";
-import { getPathname } from "@/lib/pathname";
 import { isInitialAdmin } from "@/utils/is-initial-admin";
-import { buildSafeRedirectUrl } from "@/utils/redirect";
 import type { TRPCContext } from "../context";
 import { appRouter } from "../routers";
 
@@ -32,16 +30,14 @@ export const createPublicSSRHelper = cache(async () => {
 /**
  * Private Server-Side Helper
  * @description Use for prefetching data that requires a logged-in (non-guest) user.
- * Redirects to /login if the user is not authenticated or is a guest.
+ * CF Access handles authentication - if no user is present, redirect to CF Access login.
  */
 export const createPrivateSSRHelper = cache(async () => {
   const { user } = await getUserSession();
 
   if (!user || user.isGuest) {
-    const pathname = await getPathname();
-    redirect(
-      buildSafeRedirectUrl({ destination: "/login", returnUrl: pathname }),
-    );
+    // CF Access handles auth - redirect to CF Access login endpoint
+    redirect("/cdn-cgi/access/login");
   }
 
   if (user.banned) {
@@ -60,20 +56,13 @@ export const createPrivateSSRHelper = cache(async () => {
 /**
  * Admin Server-Side Helper
  * @description Use for prefetching data that requires an admin user.
- * Redirects to /login if not authenticated, to /admin-setup if the user
- * is the initial admin but not yet promoted, or returns 404 if the user
- * is not an admin.
+ * With CF Access, all authenticated users are admins.
  */
 export const createAdminSSRHelper = cache(async () => {
   const { user } = await getUserSession();
 
   if (!user || user.isGuest) {
-    redirect(
-      buildSafeRedirectUrl({
-        destination: "/login",
-        returnUrl: await getPathname(),
-      }),
-    );
+    redirect("/cdn-cgi/access/login");
   }
 
   if (user.banned) {

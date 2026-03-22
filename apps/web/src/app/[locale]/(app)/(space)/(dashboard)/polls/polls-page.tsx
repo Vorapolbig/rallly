@@ -20,10 +20,8 @@ import {
   EmptyStateIcon,
   EmptyStateTitle,
 } from "@/components/empty-state";
-import { MemberSelector } from "@/components/member-selector";
 import { PollsInfiniteList } from "@/features/poll/components/polls-infinite-list";
 import { Trans, useTranslation } from "@/i18n/client";
-import { trpc } from "@/trpc/client";
 import { PollsTabbedView } from "./polls-tabbed-view";
 import { searchParamsSchema } from "./schema";
 
@@ -54,9 +52,8 @@ function PollsEmptyState() {
 export function PollsPage() {
   const searchParams = useSearchParams();
   const { t } = useTranslation();
-  const [{ data: members }] = trpc.spaces.listMembers.useSuspenseQuery();
 
-  const { status, q, member } = searchParamsSchema.parse(
+  const { status, q } = searchParamsSchema.parse(
     Object.fromEntries(searchParams.entries()),
   );
 
@@ -83,12 +80,10 @@ export function PollsPage() {
                 defaultValue: "Search polls by title...",
               })}
             />
-            <MemberSelector members={members} />
           </div>
           <PollsInfiniteList
             status={status}
             search={q}
-            member={member}
             emptyState={<PollsEmptyState />}
           />
         </PollsTabbedView>

@@ -14,17 +14,11 @@ import {
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { Settings2Icon } from "lucide-react";
 import Link from "next/link";
-import { ControlPanelMenuItem } from "@/app/[locale]/(app)/(space)/(dashboard)/components/control-panel-menu-item";
-import { FeedbackMenuItem } from "@/app/[locale]/(app)/(space)/(dashboard)/components/feedback-menu-item";
 import { SpaceSidebarMenu } from "@/app/[locale]/(app)/(space)/(dashboard)/components/space-sidebar-menu";
-import { UpgradeMenuItem } from "@/app/[locale]/(app)/(space)/(dashboard)/components/upgrade-menu-item";
 import { NavUser } from "@/components/nav-user";
 import { UserLocaleSync } from "@/components/user-provider";
-import { LicenseLimitWarning } from "@/features/licensing/components/license-limit-warning";
 import { CommandMenu } from "@/features/navigation/command-menu";
-import { SpaceDropdown } from "@/features/space/components/space-dropdown";
 import { Trans } from "@/i18n/client";
-import { IfFeatureEnabled } from "@/lib/feature-flags/client";
 import { createPrivateSSRHelper } from "@/trpc/server/create-ssr-helper";
 import { SpaceSidebarProvider } from "./components/space-sidebar-provider";
 
@@ -35,10 +29,7 @@ export default async function Layout({
 }) {
   const helpers = await createPrivateSSRHelper();
 
-  await Promise.all([
-    helpers.user.getAuthed.prefetch(),
-    helpers.spaces.list.prefetch(),
-  ]);
+  await helpers.user.getAuthed.prefetch();
 
   return (
     <HydrationBoundary state={dehydrate(helpers.queryClient)}>
@@ -47,7 +38,9 @@ export default async function Layout({
         <CommandMenu />
         <Sidebar>
           <SidebarHeader>
-            <SpaceDropdown />
+            <div className="flex items-center gap-2 px-2 py-1">
+              <span className="font-semibold text-sm">Rallly</span>
+            </div>
           </SidebarHeader>
           <SidebarContent>
             <SpaceSidebarMenu />
@@ -56,11 +49,6 @@ export default async function Layout({
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <UpgradeMenuItem />
-                  <IfFeatureEnabled feature="feedback">
-                    <FeedbackMenuItem />
-                  </IfFeatureEnabled>
-                  <ControlPanelMenuItem />
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link href="/settings/preferences">
@@ -77,7 +65,6 @@ export default async function Layout({
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="min-w-0">
-          <LicenseLimitWarning />
           <div className="flex flex-1 flex-col">
             <div className="flex flex-1 flex-col">{children}</div>
           </div>

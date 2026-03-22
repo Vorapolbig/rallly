@@ -1,33 +1,15 @@
 "use client";
 
-import { useFeatureFlagEnabled } from "@rallly/posthog/client";
-import { Icon } from "@rallly/ui/icon";
 import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@rallly/ui/sidebar";
-import {
-  BellIcon,
-  BoltIcon,
-  CalendarIcon,
-  CreditCardIcon,
-  KeyIcon,
-  LockIcon,
-  PanelsTopLeftIcon,
-  Settings2Icon,
-  UserIcon,
-  UsersIcon,
-} from "lucide-react";
+import { CalendarIcon, Settings2Icon, UserIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { HoverPrefetchLink } from "@/components/hover-prefetch-link";
-import { useSpace } from "@/features/space/client";
-import { Trans, useTranslation } from "@/i18n/client";
+import { useTranslation } from "@/i18n/client";
 import { useFeatureFlag } from "@/lib/feature-flags/client";
-import { trpc } from "@/trpc/client";
 
 export function AccountSidebarMenu() {
   const { t } = useTranslation();
@@ -40,28 +22,10 @@ export function AccountSidebarMenu() {
       href: "/settings/profile",
     },
     {
-      id: "security",
-      label: t("security", { defaultValue: "Security" }),
-      icon: <LockIcon />,
-      href: "/settings/security",
-    },
-    {
       id: "preferences",
       label: t("preferences", { defaultValue: "Preferences" }),
       icon: <Settings2Icon />,
       href: "/settings/preferences",
-    },
-    {
-      id: "notifications",
-      label: t("notifications", { defaultValue: "Notifications" }),
-      icon: <BellIcon />,
-      href: "/settings/notifications",
-    },
-    {
-      id: "spaces",
-      label: t("spaces", { defaultValue: "Spaces" }),
-      icon: <PanelsTopLeftIcon />,
-      href: "/settings/spaces",
     },
   ];
 
@@ -92,93 +56,5 @@ export function AccountSidebarMenu() {
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
-  );
-}
-
-export function SpaceSidebarMenu() {
-  const { t } = useTranslation();
-  const pathname = usePathname();
-  const isBillingEnabled = useFeatureFlag("billing");
-  const menuItems = [
-    {
-      id: "general",
-      label: t("general", { defaultValue: "General" }),
-      icon: <BoltIcon />,
-      href: "/settings/general",
-    },
-    {
-      id: "members",
-      label: t("members", { defaultValue: "Members" }),
-      icon: <UsersIcon />,
-      href: "/settings/members",
-    },
-    ...(isBillingEnabled
-      ? [
-          {
-            id: "billing",
-            label: t("billing", { defaultValue: "Billing" }),
-            icon: <CreditCardIcon />,
-            href: "/settings/billing",
-          },
-        ]
-      : []),
-  ];
-
-  return (
-    <SidebarMenu>
-      {menuItems.map((item) => (
-        <SidebarMenuItem key={item.id}>
-          <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)}>
-            <HoverPrefetchLink
-              href={item.href}
-              className="flex items-center gap-x-2"
-            >
-              <Icon>{item.icon}</Icon>
-              {item.label}
-            </HoverPrefetchLink>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
-  );
-}
-
-export function DeveloperSidebarMenu() {
-  const { data: space } = useSpace();
-  const [user] = trpc.user.getAuthed.useSuspenseQuery();
-  const isSpaceOwner = space.ownerId === user.id;
-  const pathname = usePathname();
-  const isDeveloperToolsEnabled = useFeatureFlagEnabled("developer-tools");
-
-  if (!isSpaceOwner || !isDeveloperToolsEnabled) {
-    return null;
-  }
-
-  return (
-    <SidebarGroup>
-      <SidebarGroupLabel>
-        <Trans i18nKey="developer" defaults="Developer" />
-      </SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/settings/api-keys")}
-            >
-              <HoverPrefetchLink
-                href="/settings/api-keys"
-                className="flex items-center gap-x-2"
-              >
-                <Icon>
-                  <KeyIcon />
-                </Icon>
-                <Trans i18nKey="apiKeys" defaults="API Keys" />
-              </HoverPrefetchLink>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
   );
 }

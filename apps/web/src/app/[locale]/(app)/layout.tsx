@@ -11,10 +11,7 @@ export default async function AppLayout({
 }) {
   const helpers = await createPublicSSRHelper();
 
-  await Promise.all([
-    helpers.user.getMe.prefetch(),
-    helpers.billing.getTier.prefetch(),
-  ]);
+  await helpers.user.getMe.prefetch();
 
   return (
     <HydrationBoundary state={dehydrate(helpers.queryClient)}>

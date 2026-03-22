@@ -13,14 +13,11 @@ export default async function Page(props: {
 
   const helpers = await createPrivateSSRHelper();
 
-  await Promise.all([
-    helpers.spaces.listMembers.prefetch(),
-    helpers.polls.infiniteChronological.prefetchInfinite({
-      status,
-      search: q,
-      member,
-    }),
-  ]);
+  await helpers.polls.infiniteChronological.prefetchInfinite({
+    status,
+    search: q,
+    member,
+  });
 
   return (
     <HydrationBoundary state={dehydrate(helpers.queryClient)}>

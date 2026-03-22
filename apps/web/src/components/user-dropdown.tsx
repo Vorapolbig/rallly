@@ -35,7 +35,6 @@ import { OptimizedAvatarImage } from "@/components/optimized-avatar-image";
 import { useUser } from "@/components/user-provider";
 import { useTheme } from "@/features/theme/client";
 import { Trans } from "@/i18n/client";
-import { signOut } from "@/lib/auth-client";
 import { useFeatureFlag } from "@/lib/feature-flags/client";
 
 export const UserDropdown = ({ className }: { className?: string }) => {
@@ -163,9 +162,9 @@ export const UserDropdown = ({ className }: { className?: string }) => {
         </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={async () => {
-            await signOut();
+          onClick={() => {
             posthog?.reset();
+            window.location.href = "/cdn-cgi/access/logout";
           }}
           className="flex items-center gap-x-2"
         >

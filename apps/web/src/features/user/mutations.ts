@@ -36,23 +36,3 @@ export async function createUser({
 
   return user;
 }
-
-export async function setActiveSpace({
-  userId,
-  spaceId,
-}: {
-  userId: string;
-  spaceId: string;
-}) {
-  return await prisma.spaceMember.update({
-    where: {
-      spaceId_userId: {
-        spaceId: spaceId,
-        userId: userId,
-      },
-    },
-    data: {
-      lastSelectedAt: new Date(),
-    },
-  });
-}

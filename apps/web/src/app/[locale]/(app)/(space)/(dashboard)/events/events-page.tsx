@@ -18,10 +18,8 @@ import {
   EmptyStateIcon,
   EmptyStateTitle,
 } from "@/components/empty-state";
-import { MemberSelector } from "@/components/member-selector";
 import type { Status } from "@/features/scheduled-event/schema";
 import { Trans, useTranslation } from "@/i18n/client";
-import { trpc } from "@/trpc/client";
 import { EventsInfiniteList } from "./events-infinite-list";
 import { EventsTabbedView } from "./events-tabbed-view";
 import { eventsSearchParamsSchema } from "./schema";
@@ -102,9 +100,8 @@ function EventsEmptyState({ status }: { status: Status }) {
 function EventsPageContent() {
   const searchParams = useSearchParams();
   const { t } = useTranslation();
-  const [{ data: members }] = trpc.spaces.listMembers.useSuspenseQuery();
 
-  const { status, q, member } = eventsSearchParamsSchema.parse(
+  const { status, q } = eventsSearchParamsSchema.parse(
     Object.fromEntries(searchParams.entries()),
   );
 
@@ -123,12 +120,10 @@ function EventsPageContent() {
                 defaultValue: "Search events by title...",
               })}
             />
-            <MemberSelector members={members} />
           </div>
           <EventsInfiniteList
             status={status}
             search={q}
-            member={member}
             emptyState={<EventsEmptyState status={status || "upcoming"} />}
           />
         </EventsTabbedView>

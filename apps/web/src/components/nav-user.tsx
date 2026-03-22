@@ -30,15 +30,12 @@ import {
 import Link from "next/link";
 import React from "react";
 import { OptimizedAvatarImage } from "@/components/optimized-avatar-image";
-import { RouterLoadingIndicator } from "@/components/router-loading-indicator";
 import { useTheme } from "@/features/theme/client";
 import { Trans } from "@/i18n/client";
-import { signOut } from "@/lib/auth-client";
 import { trpc } from "@/trpc/client";
 
 export function NavUser() {
   const { data: user } = trpc.user.getAuthed.useQuery();
-  const [isPending, setIsPending] = React.useState(false);
   const posthog = usePostHog();
   const { theme, setTheme } = useTheme();
 
@@ -47,95 +44,92 @@ export function NavUser() {
   }
 
   return (
-    <>
-      {isPending && <RouterLoadingIndicator />}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button className="flex h-auto w-full gap-2 p-2" variant="ghost">
-            <OptimizedAvatarImage size="lg" src={user.image} name={user.name} />
-            <div className="flex-1 truncate text-left">
-              <div className="font-medium">{user.name}</div>
-              <div className="mt-0.5 truncate font-normal text-muted-foreground text-xs">
-                {user.email}
-              </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button className="flex h-auto w-full gap-2 p-2" variant="ghost">
+          <OptimizedAvatarImage size="lg" src={user.image} name={user.name} />
+          <div className="flex-1 truncate text-left">
+            <div className="font-medium">{user.name}</div>
+            <div className="mt-0.5 truncate font-normal text-muted-foreground text-xs">
+              {user.email}
             </div>
+          </div>
+          <Icon>
+            <ChevronDownIcon />
+          </Icon>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className="w-(--radix-dropdown-menu-trigger-width)"
+        align="end"
+        side="top"
+      >
+        <DropdownMenuLabel>
+          <Trans i18nKey="account" defaults="Account" />
+        </DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/profile">
             <Icon>
-              <ChevronDownIcon />
+              <UserIcon />
             </Icon>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className="w-(--radix-dropdown-menu-trigger-width)"
-          align="end"
-          side="top"
+            <Trans i18nKey="profile" defaults="Profile" />
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/preferences">
+            <Icon>
+              <Settings2Icon />
+            </Icon>
+            <Trans i18nKey="preferences" defaults="Preferences" />
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Icon>
+              <SunMoonIcon />
+            </Icon>
+            <Trans i18nKey="theme" defaults="Theme" />
+          </DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                <DropdownMenuRadioItem value="system">
+                  <Icon>
+                    <MonitorIcon />
+                  </Icon>
+                  <Trans i18nKey="themeSystem" defaults="System" />
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="light">
+                  <Icon>
+                    <SunIcon />
+                  </Icon>
+                  <Trans i18nKey="themeLight" defaults="Light" />
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">
+                  <Icon>
+                    <MoonIcon />
+                  </Icon>
+                  <Trans i18nKey="themeDark" defaults="Dark" />
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            posthog?.reset();
+            // Redirect to CF Access logout endpoint
+            window.location.href = "/cdn-cgi/access/logout";
+          }}
         >
-          <DropdownMenuLabel>
-            <Trans i18nKey="account" defaults="Account" />
-          </DropdownMenuLabel>
-          <DropdownMenuItem asChild>
-            <Link href="/settings/profile">
-              <Icon>
-                <UserIcon />
-              </Icon>
-              <Trans i18nKey="profile" defaults="Profile" />
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/settings/preferences">
-              <Icon>
-                <Settings2Icon />
-              </Icon>
-              <Trans i18nKey="preferences" defaults="Preferences" />
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Icon>
-                <SunMoonIcon />
-              </Icon>
-              <Trans i18nKey="theme" defaults="Theme" />
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                  <DropdownMenuRadioItem value="system">
-                    <Icon>
-                      <MonitorIcon />
-                    </Icon>
-                    <Trans i18nKey="themeSystem" defaults="System" />
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="light">
-                    <Icon>
-                      <SunIcon />
-                    </Icon>
-                    <Trans i18nKey="themeLight" defaults="Light" />
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="dark">
-                    <Icon>
-                      <MoonIcon />
-                    </Icon>
-                    <Trans i18nKey="themeDark" defaults="Dark" />
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={async () => {
-              setIsPending(true);
-              await signOut();
-              posthog?.reset();
-            }}
-          >
-            <Icon>
-              <LogOutIcon />
-            </Icon>
-            <Trans i18nKey="signOut" defaults="Sign Out" />
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
+          <Icon>
+            <LogOutIcon />
+          </Icon>
+          <Trans i18nKey="signOut" defaults="Sign Out" />
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -1,9 +1,7 @@
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslation } from "@/i18n/server";
 import { isFeatureEnabled } from "@/lib/feature-flags/server";
-import { createPrivateSSRHelper } from "@/trpc/server/create-ssr-helper";
 import { BillingPageClient } from "./page-client";
 
 export default async function BillingSettingsPage() {
@@ -11,18 +9,7 @@ export default async function BillingSettingsPage() {
     notFound();
   }
 
-  const helpers = await createPrivateSSRHelper();
-
-  await Promise.all([
-    helpers.billing.getSubscription.prefetch(),
-    helpers.spaces.getSeats.prefetch(),
-  ]);
-
-  return (
-    <HydrationBoundary state={dehydrate(helpers.queryClient)}>
-      <BillingPageClient />
-    </HydrationBoundary>
-  );
+  return <BillingPageClient />;
 }
 
 export async function generateMetadata(): Promise<Metadata> {
