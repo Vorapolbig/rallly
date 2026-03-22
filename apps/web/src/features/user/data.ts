@@ -1,7 +1,7 @@
 import type { User } from "@rallly/database";
 import { prisma } from "@rallly/database";
 import type { UserDTO } from "@/features/user/schema";
-import { getSession } from "@/lib/auth";
+import { getAdminUserFromCFHeaders } from "./cf-access";
 
 export const createUserDTO = (user: User): UserDTO => ({
   id: user.id,
@@ -18,25 +18,6 @@ export const createUserDTO = (user: User): UserDTO => ({
   isGuest: user.isAnonymous,
 });
 
-const createGuestDTO = (session: {
-  id: string;
-  name: string;
-  email: string;
-  image?: string | null;
-  locale?: string;
-  timeZone?: string;
-}): UserDTO => ({
-  id: session.id,
-  name: session.name,
-  email: session.email,
-  image: session.image ?? undefined,
-  role: "user",
-  banned: false,
-  isGuest: true,
-  locale: session.locale,
-  timeZone: session.timeZone,
-});
-
 export const getUser = async (id: string) => {
   const user = await prisma.user.findUnique({
     where: {
@@ -51,16 +32,63 @@ export const getUser = async (id: string) => {
   return createUserDTO(user);
 };
 
-export const getUserSession = async () => {
-  const session = await getSession();
+/**
+ * Get or create admin user from Cloudflare Access headers.
+ * CF Access is the source of truth for admin identity.
+ * We maintain a minimal user record for preferences/settings.
+ */
+export async function getOrCreateAdminUserFromCFAccess(
+  email: string,
+  name?: string,
+) {
+  let user = await prisma.user.findUnique({
+    where: { email },
+  });
 
-  if (!session?.user) {
+  if (user) {
+    return user;
+  }
+
+  user = await prisma.user.create({
+    data: {
+      email,
+      name: name ?? email.split("@")[0],
+      isAnonymous: false,
+    },
+  });
+
+  return user;
+}
+
+/**
+ * Get the current user session based on CF Access headers.
+ * Returns { user: UserDTO } for admin, or { user: undefined } for unauthenticated.
+ */
+export const getUserSession = async () => {
+  const cfUser = await getAdminUserFromCFHeaders();
+
+  if (!cfUser) {
     return { session: null, user: undefined };
   }
 
-  const user = session.user.isGuest
-    ? createGuestDTO(session.user)
-    : ((await getUser(session.user.id)) ?? undefined);
+  const dbUser = await getOrCreateAdminUserFromCFAccess(cfUser.email, cfUser.name);
 
-  return { session, user };
+  const user: UserDTO = {
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    role: dbUser.role,
+    banned: dbUser.banned,
+    isGuest: false,
+    timeZone: dbUser.timeZone ?? undefined,
+    timeFormat: dbUser.timeFormat ?? undefined,
+    locale: dbUser.locale ?? undefined,
+    weekStart: dbUser.weekStart ?? undefined,
+    customerId: dbUser.customerId ?? undefined,
+  };
+
+  return {
+    session: { user },
+    user,
+  };
 };

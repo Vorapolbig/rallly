@@ -1,17 +1,11 @@
-import { subject } from "@casl/ability";
 import { prisma } from "@rallly/database";
 import { TRPCError } from "@trpc/server";
-import { after } from "next/server";
 import * as z from "zod";
 import { getEventsChronological } from "@/features/scheduled-event/data";
-import { formatEventDateTime } from "@/features/scheduled-event/utils";
-import { defineAbilityForMember } from "@/features/space/member/ability";
-import { getEmailClient } from "@/utils/emails";
-import { createIcsEvent } from "@/utils/ics";
-import { router, spaceProcedure } from "../trpc";
+import { privateProcedure, router } from "../trpc";
 
 export const events = router({
-  infiniteList: spaceProcedure
+  infiniteList: privateProcedure
     .input(
       z.object({
         status: z
@@ -32,7 +26,7 @@ export const events = router({
         member,
         page,
         pageSize,
-        spaceId: ctx.space.id,
+        userId: ctx.user.id,
       });
 
       let nextCursor: number | undefined;
@@ -48,16 +42,11 @@ export const events = router({
       };
     }),
 
-  cancel: spaceProcedure
+  cancel: privateProcedure
     .input(z.object({ eventId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const memberAbility = defineAbilityForMember({
-        user: ctx.user,
-        space: ctx.space,
-      });
-
       const event = await prisma.scheduledEvent.findFirst({
-        where: { id: input.eventId, spaceId: ctx.space.id },
+        where: { id: input.eventId, userId: ctx.user.id },
       });
 
       if (!event) {
@@ -67,15 +56,8 @@ export const events = router({
         });
       }
 
-      if (memberAbility.cannot("cancel", subject("ScheduledEvent", event))) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You do not have permission to cancel this event",
-        });
-      }
-
       // Atomically update only if not already canceled to ensure idempotency
-      const { count } = await prisma.scheduledEvent.updateMany({
+      await prisma.scheduledEvent.updateMany({
         where: {
           id: input.eventId,
           status: { not: "canceled" },
@@ -85,83 +67,5 @@ export const events = router({
           sequence: { increment: 1 },
         },
       });
-
-      // Already canceled — skip notifications
-      if (count === 0) {
-        return;
-      }
-
-      const updatedEvent = await prisma.scheduledEvent.findUniqueOrThrow({
-        where: { id: input.eventId },
-        include: { invites: true },
-      });
-
-      const cancelEvent = createIcsEvent({
-        uid: updatedEvent.uid,
-        sequence: updatedEvent.sequence,
-        title: updatedEvent.title,
-        description: updatedEvent.description ?? undefined,
-        location: updatedEvent.location ?? undefined,
-        start: updatedEvent.start,
-        end: updatedEvent.end,
-        allDay: updatedEvent.allDay,
-        timeZone: updatedEvent.timeZone ?? undefined,
-        organizer: {
-          name: ctx.user.name,
-          email: ctx.user.email,
-        },
-        attendees: updatedEvent.invites.map((invite) => ({
-          name: invite.inviteeName,
-          email: invite.inviteeEmail,
-        })),
-        method: "cancel",
-        status: "CANCELLED",
-      });
-
-      if (cancelEvent.error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to generate cancellation ICS: ${cancelEvent.error.message}`,
-        });
-      }
-
-      if (!cancelEvent.value) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to generate cancellation ICS",
-        });
-      }
-
-      for (const invite of updatedEvent.invites) {
-        if (invite.status !== "declined") {
-          const { day, dow, date, time } = formatEventDateTime({
-            start: updatedEvent.start,
-            end: updatedEvent.end,
-            allDay: updatedEvent.allDay,
-            timeZone: updatedEvent.timeZone,
-            inviteeTimeZone: invite.inviteeTimeZone,
-          });
-
-          const emailClient = await getEmailClient();
-          after(() =>
-            emailClient.sendTemplate("EventCanceledEmail", {
-              to: invite.inviteeEmail,
-              props: {
-                title: updatedEvent.title,
-                hostName: ctx.user.name,
-                day,
-                dow,
-                date,
-                time,
-              },
-              icalEvent: {
-                filename: "cancel.ics",
-                method: "cancel",
-                content: cancelEvent.value,
-              },
-            }),
-          );
-        }
-      }
     }),
 });

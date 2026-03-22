@@ -1,29 +1,21 @@
 import type { PollStatus } from "@rallly/database";
 import { prisma } from "@rallly/database";
-import { absoluteUrl, shortUrl } from "@rallly/utils/absolute-url";
+import { shortUrl } from "@rallly/utils/absolute-url";
 import { nanoid } from "@rallly/utils/nanoid";
 import { TRPCError } from "@trpc/server";
-import { after } from "next/server";
 import * as z from "zod";
 import { posthog } from "@/features/analytics/posthog";
 import { moderateContent } from "@/features/moderation";
 import { getPolls } from "@/features/poll/data";
 import { canUserManagePoll } from "@/features/poll/helpers";
 import { hasPollAdminAccess } from "@/features/poll/query";
-import { formatEventDateTime } from "@/features/scheduled-event/utils";
-import { getActiveSpaceForUser } from "@/features/space/data";
 import { dayjs } from "@/lib/dayjs";
-import { getEmailClient } from "@/utils/emails";
-import { createIcsEvent } from "@/utils/ics";
 import {
   createRateLimitMiddleware,
-  possiblyPublicProcedure,
   privateProcedure,
-  proProcedure,
   publicProcedure,
   requireUserMiddleware,
   router,
-  spaceProcedure,
 } from "../trpc";
 import { comments } from "./polls/comments";
 import { participants } from "./polls/participants";
@@ -50,7 +42,7 @@ const getPollIdFromAdminUrlId = async (urlId: string) => {
 export const polls = router({
   participants,
   comments,
-  infiniteChronological: spaceProcedure
+  infiniteChronological: privateProcedure
     .input(
       z.object({
         status: z.enum(["open", "closed", "scheduled", "canceled"]).optional(),
@@ -69,7 +61,7 @@ export const polls = router({
         member,
         page,
         pageSize,
-        spaceId: ctx.space.id,
+        userId: ctx.user.id,
       });
 
       let nextCursor: number | undefined;
@@ -105,7 +97,7 @@ export const polls = router({
     );
   }),
 
-  make: possiblyPublicProcedure
+  make: privateProcedure
     .input(
       z.object({
         title: z.string().trim().min(1),
@@ -124,22 +116,8 @@ export const polls = router({
           .array(),
       }),
     )
-    .use(requireUserMiddleware)
     .use(createRateLimitMiddleware("create_poll", 20, "1 h"))
     .mutation(async ({ ctx, input }) => {
-      const activeSpace = ctx.user.isGuest
-        ? null
-        : await getActiveSpaceForUser(ctx.user.id);
-
-      if (!ctx.user.isGuest && !activeSpace) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You must be a member of a space to create a poll",
-        });
-      }
-
-      const isPro = activeSpace?.tier === "pro";
-
       const moderation = await moderateContent({
         userId: ctx.user.id,
         content: {
@@ -147,7 +125,7 @@ export const polls = router({
           Description: input.description || "",
           Location: input.location || "",
         },
-        trusted: isPro,
+        trusted: false,
       });
 
       if (moderation.verdict !== "safe") {
@@ -175,7 +153,6 @@ export const polls = router({
       const adminToken = nanoid();
       const participantUrlId = nanoid();
       const pollId = nanoid();
-      const spaceId = activeSpace?.id;
 
       const poll = await prisma.poll.create({
         include: {
@@ -213,37 +190,8 @@ export const polls = router({
           disableComments: input.disableComments,
           hideScores: input.hideScores,
           requireParticipantEmail: input.requireParticipantEmail,
-          spaceId,
         },
       });
-
-      const pollLink = absoluteUrl(`/poll/${pollId}`);
-
-      const participantLink = shortUrl(`/invite/${pollId}`);
-
-      if (ctx.user.isGuest === false) {
-        const user = await prisma.user.findUnique({
-          select: { email: true, name: true },
-          where: { id: ctx.user.id },
-        });
-
-        if (user) {
-          const emailClient = await getEmailClient(
-            ctx.user.locale ?? undefined,
-          );
-          after(() =>
-            emailClient.sendTemplate("NewPollEmail", {
-              to: user.email,
-              props: {
-                title: poll.title,
-                name: user.name,
-                adminLink: pollLink,
-                participantLink,
-              },
-            }),
-          );
-        }
-      }
 
       posthog()?.groupIdentify({
         groupType: "poll",
@@ -251,7 +199,7 @@ export const polls = router({
         properties: {
           name: poll.title,
           status: poll.status,
-          is_guest: ctx.user.isGuest,
+          is_guest: false,
           created_at: poll.createdAt,
           participant_count: 0,
           comment_count: 0,
@@ -276,17 +224,16 @@ export const polls = router({
           hideParticipants: poll.hideParticipants,
           hideScores: poll.hideScores,
           requireParticipantEmail: poll.requireParticipantEmail,
-          isGuest: ctx.user.isGuest,
+          isGuest: false,
         },
         groups: {
           poll: poll.id,
-          ...(poll.spaceId ? { space: poll.spaceId } : {}),
         },
       });
 
       return { ok: true as const, data: { id: poll.id } };
     }),
-  modify: possiblyPublicProcedure
+  modify: privateProcedure
     .input(
       z.object({
         urlId: z.string(),
@@ -314,11 +261,6 @@ export const polls = router({
         });
       }
 
-      const activeSpace = ctx.user.isGuest
-        ? null
-        : await getActiveSpaceForUser(ctx.user.id);
-      const isPro = activeSpace?.tier === "pro";
-
       const moderation = await moderateContent({
         userId: ctx.user.id,
         content: {
@@ -326,7 +268,7 @@ export const polls = router({
           Description: input.description || "",
           Location: input.location || "",
         },
-        trusted: isPro,
+        trusted: false,
       });
 
       if (moderation.verdict !== "safe") {
@@ -456,7 +398,7 @@ export const polls = router({
             title: updatedPoll.title,
             has_location: !!updatedPoll.location,
             has_description: !!updatedPoll.description,
-            is_guest: ctx.user.isGuest,
+            is_guest: false,
           },
           groups: {
             poll: pollId,
@@ -495,13 +437,12 @@ export const polls = router({
 
       return { ok: true as const };
     }),
-  markAsDeleted: possiblyPublicProcedure
+  markAsDeleted: privateProcedure
     .input(
       z.object({
         pollId: z.string(),
       }),
     )
-    .use(requireUserMiddleware)
     .mutation(async ({ input: { pollId }, ctx }) => {
       const hasAccess = await hasPollAdminAccess(pollId, ctx.user.id);
 
@@ -523,46 +464,6 @@ export const polls = router({
         distinctId: ctx.user.id,
         groups: {
           poll: pollId,
-        },
-      });
-    }),
-  // END LEGACY ROUTES
-  toggleMuted: privateProcedure
-    .input(z.object({ pollId: z.string(), muted: z.boolean() }))
-    .mutation(async ({ input, ctx }) => {
-      const poll = await prisma.poll.findUnique({
-        where: { id: input.pollId },
-        select: { userId: true },
-      });
-
-      if (!poll || poll.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the poll owner can mute notifications",
-        });
-      }
-
-      await prisma.poll.update({
-        where: { id: input.pollId },
-        data: { muted: input.muted },
-      });
-
-      posthog()?.groupIdentify({
-        groupType: "poll",
-        groupKey: input.pollId,
-        properties: {
-          muted: input.muted,
-        },
-      });
-
-      posthog()?.capture({
-        event: "poll_notification_toggle",
-        distinctId: ctx.user.id,
-        properties: {
-          muted: input.muted,
-        },
-        groups: {
-          poll: input.pollId,
         },
       });
     }),
@@ -681,7 +582,7 @@ export const polls = router({
         return { ...res, adminUrlId: "", inviteLink, event };
       }
     }),
-  book: proProcedure
+  book: privateProcedure
     .input(
       z.object({
         pollId: z.string(),
@@ -710,14 +611,6 @@ export const polls = router({
           title: true,
           location: true,
           description: true,
-          spaceId: true,
-          user: {
-            select: {
-              name: true,
-              email: true,
-              locale: true,
-            },
-          },
           participants: {
             where: { deleted: false },
             select: {
@@ -750,13 +643,6 @@ export const polls = router({
         });
       }
 
-      if (!poll.user) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Poll has no user",
-        });
-      }
-
       // create event in database
       const option = await prisma.option.findUnique({
         where: {
@@ -783,42 +669,13 @@ export const polls = router({
         eventStart = eventStart.utc();
       }
 
-      const { spaceId } = poll;
-
-      if (!spaceId) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Poll has no space",
-        });
-      }
-
       const eventId = nanoid();
-      const uid = `${eventId}@rallly.co`;
 
       const attendees = poll.participants.filter((p) =>
         p.votes.some((v) => v.optionId === input.optionId && v.type !== "no"),
       );
 
-      const event = createIcsEvent({
-        uid,
-        sequence: 0,
-        title: poll.title,
-        location: poll.location ?? undefined,
-        description: poll.description ?? undefined,
-        start: option.startTime,
-        end:
-          option.duration > 0
-            ? dayjs(option.startTime).add(option.duration, "minute").toDate()
-            : dayjs(option.startTime).add(1, "day").toDate(),
-        allDay: option.duration === 0,
-        timeZone: poll.timeZone ?? undefined,
-        organizer: {
-          name: poll.user.name,
-          email: poll.user.email,
-        },
-      });
-
-      const scheduledEvent = await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         // create scheduled event
         const event = await tx.scheduledEvent.create({
           data: {
@@ -834,7 +691,6 @@ export const polls = router({
             location: poll.location,
             timeZone: poll.timeZone,
             userId: ctx.user.id,
-            spaceId,
             allDay: option.duration === 0,
             status: "confirmed",
             invites: {
@@ -871,137 +727,20 @@ export const polls = router({
             scheduledEventId: event.id,
           },
         });
-
-        return event;
       });
 
-      if (event.error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: event.error.message,
-        });
-      }
-
-      if (!event.value) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to generate ics",
-        });
-      } else {
-        const participantsToEmail: Array<{
-          name: string;
-          email: string;
-          locale: string | undefined;
-          timeZone: string | null;
-        }> = [];
-
-        if (input.notify === "all") {
-          poll.participants.forEach((p) => {
-            if (p.email) {
-              participantsToEmail.push({
-                name: p.name,
-                email: p.email,
-                locale: p.locale ?? undefined,
-                timeZone: p.timeZone,
-              });
-            }
-          });
-        }
-
-        if (input.notify === "attendees") {
-          attendees.forEach((p) => {
-            if (p.email) {
-              participantsToEmail.push({
-                name: p.name,
-                email: p.email,
-                locale: p.locale ?? undefined,
-                timeZone: p.timeZone,
-              });
-            }
-          });
-        }
-
-        const { date, day, dow, time } = formatEventDateTime({
-          start: scheduledEvent.start,
-          end: scheduledEvent.end,
-          allDay: scheduledEvent.allDay,
-          timeZone: scheduledEvent.timeZone,
-        });
-
-        const hostEmail = poll.user.email;
-        const hostName = poll.user.name;
-        const emailClient = await getEmailClient(poll.user.locale ?? undefined);
-        after(() =>
-          emailClient.sendTemplate("FinalizeHostEmail", {
-            to: hostEmail,
-            props: {
-              name: hostName,
-              pollUrl: absoluteUrl(`/poll/${poll.id}`),
-              location: poll.location,
-              title: poll.title,
-              attendees: poll.participants
-                .filter((p) =>
-                  p.votes.some(
-                    (v) => v.optionId === input.optionId && v.type !== "no",
-                  ),
-                )
-                .map((p) => p.name),
-              date,
-              day,
-              dow,
-              time,
-            },
-            icalEvent: {
-              filename: "invite.ics",
-              method: "request",
-              content: event.value,
-            },
-          }),
-        );
-
-        for (const p of participantsToEmail) {
-          const { date, day, dow, time } = formatEventDateTime({
-            start: scheduledEvent.start,
-            end: scheduledEvent.end,
-            allDay: scheduledEvent.allDay,
-            timeZone: scheduledEvent.timeZone,
-            inviteeTimeZone: p.timeZone,
-          });
-          const emailClient = await getEmailClient(p.locale ?? undefined);
-          after(() =>
-            emailClient.sendTemplate("FinalizeParticipantEmail", {
-              to: p.email,
-              props: {
-                pollUrl: absoluteUrl(`/invite/${poll.id}`),
-                title: poll.title,
-                hostName: poll.user?.name ?? "",
-                date,
-                day,
-                dow,
-                time,
-              },
-              icalEvent: {
-                filename: "invite.ics",
-                method: "request",
-                content: event.value,
-              },
-            }),
-          );
-        }
-
-        posthog()?.capture({
-          event: "poll_schedule",
-          distinctId: ctx.user.id,
-          properties: {
-            attendee_count: attendees.length,
-            days_since_created: dayjs().diff(poll.createdAt, "day"),
-            participant_count: poll.participants.length,
-          },
-          groups: {
-            poll: poll.id,
-          },
-        });
-      }
+      posthog()?.capture({
+        event: "poll_schedule",
+        distinctId: ctx.user.id,
+        properties: {
+          attendee_count: attendees.length,
+          days_since_created: dayjs().diff(poll.createdAt, "day"),
+          participant_count: poll.participants.length,
+        },
+        groups: {
+          poll: poll.id,
+        },
+      });
     }),
   reopen: privateProcedure
     .input(
@@ -1046,13 +785,12 @@ export const polls = router({
         },
       });
     }),
-  close: possiblyPublicProcedure
+  close: privateProcedure
     .input(
       z.object({
         pollId: z.string(),
       }),
     )
-    .use(requireUserMiddleware)
     .mutation(async ({ input, ctx }) => {
       const hasAccess = await hasPollAdminAccess(input.pollId, ctx.user.id);
 
@@ -1079,74 +817,5 @@ export const polls = router({
           poll: input.pollId,
         },
       });
-    }),
-  duplicate: proProcedure
-    .input(
-      z.object({
-        pollId: z.string(),
-        newTitle: z.string().min(1),
-      }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const hasAccess = await hasPollAdminAccess(input.pollId, ctx.user.id);
-
-      if (!hasAccess) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You are not allowed to duplicate this poll",
-        });
-      }
-
-      const poll = await prisma.poll.findUnique({
-        where: {
-          id: input.pollId,
-        },
-        select: {
-          location: true,
-          description: true,
-          timeZone: true,
-          hideParticipants: true,
-          hideScores: true,
-          requireParticipantEmail: true,
-          disableComments: true,
-          spaceId: true,
-          options: {
-            select: {
-              startTime: true,
-              duration: true,
-            },
-          },
-        },
-      });
-
-      if (!poll) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Poll not found" });
-      }
-
-      const newPoll = await prisma.poll.create({
-        select: {
-          id: true,
-        },
-        data: {
-          id: nanoid(),
-          title: input.newTitle,
-          userId: ctx.user.id,
-          timeZone: poll.timeZone,
-          location: poll.location,
-          spaceId: poll.spaceId,
-          requireParticipantEmail: poll.requireParticipantEmail,
-          description: poll.description,
-          hideParticipants: poll.hideParticipants,
-          hideScores: poll.hideScores,
-          disableComments: poll.disableComments,
-          adminUrlId: nanoid(),
-          participantUrlId: nanoid(),
-          options: {
-            create: poll.options,
-          },
-        },
-      });
-
-      return newPoll;
     }),
 });

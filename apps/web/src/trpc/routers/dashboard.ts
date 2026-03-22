@@ -1,14 +1,10 @@
 import type { Prisma } from "@rallly/database";
 import { prisma } from "@rallly/database";
-import type { MemberAbilityContext } from "@/features/space/member/ability";
-import { defineAbilityForMember } from "@/features/space/member/ability";
-import { getTotalSeatsForSpace } from "@/features/space/utils";
 import { dayjs } from "@/lib/dayjs";
-import { router, spaceProcedure } from "../trpc";
+import { privateProcedure, router } from "../trpc";
 
 export const dashboard = router({
-  stats: spaceProcedure.query(async ({ ctx }) => {
-    const { space } = ctx;
+  stats: privateProcedure.query(async ({ ctx }) => {
     const now = new Date();
     const todayStart = dayjs()
       .tz(ctx.user.timeZone ?? "UTC")
@@ -16,7 +12,7 @@ export const dashboard = router({
       .toDate();
 
     const upcomingEventsWhere: Prisma.ScheduledEventWhereInput = {
-      spaceId: space.id,
+      userId: ctx.user.id,
       deletedAt: null,
       status: "confirmed",
       OR: [
@@ -25,38 +21,20 @@ export const dashboard = router({
       ],
     };
 
-    const [
-      openPollCount,
-      upcomingEventCount,
-      memberCount,
-      seatCount,
-      accountCount,
-    ] = await Promise.all([
+    const [openPollCount, upcomingEventCount] = await Promise.all([
       prisma.poll.count({
         where: {
-          spaceId: space.id,
+          userId: ctx.user.id,
           status: "open",
           deleted: false,
         },
       }),
       prisma.scheduledEvent.count({ where: upcomingEventsWhere }),
-      prisma.spaceMember.count({ where: { spaceId: space.id } }),
-      getTotalSeatsForSpace(space.id),
-      prisma.account.count({ where: { userId: ctx.user.id } }),
     ]);
-
-    const ability = defineAbilityForMember({
-      user: { id: ctx.user.id },
-      space,
-    } satisfies MemberAbilityContext);
 
     return {
       openPollCount,
       upcomingEventCount,
-      memberCount,
-      seatCount,
-      hasNoAccounts: accountCount === 0,
-      canManageBilling: ability.can("manage", "Billing"),
     };
   }),
 });

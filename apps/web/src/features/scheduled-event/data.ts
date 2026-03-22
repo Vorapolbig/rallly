@@ -89,12 +89,12 @@ function transformEvent(event: RawEventData) {
 
 // Common base where clause builder
 function buildBaseWhere(
-  spaceId: string,
+  userId: string,
   search?: string,
   member?: string,
 ): Prisma.ScheduledEventWhereInput {
   const baseWhere: Prisma.ScheduledEventWhereInput = {
-    spaceId,
+    userId,
     deletedAt: null,
   };
 
@@ -115,19 +115,19 @@ export const getUpcomingEvents = async ({
   member,
   page = 1,
   pageSize = 20,
-  spaceId,
+  userId,
 }: {
   search?: string;
   member?: string;
   page?: number;
   pageSize?: number;
-  spaceId: string;
+  userId: string;
 }) => {
   const now = new Date();
   const todayStart = dayjs().startOf("day").utc().toDate();
 
   const where: Prisma.ScheduledEventWhereInput = {
-    ...buildBaseWhere(spaceId, search, member),
+    ...buildBaseWhere(userId, search, member),
     status: "confirmed",
     OR: [
       { allDay: false, start: { gte: now } },
@@ -166,19 +166,19 @@ export const getPastEvents = async ({
   member,
   page = 1,
   pageSize = 20,
-  spaceId,
+  userId,
 }: {
   search?: string;
   member?: string;
   page?: number;
   pageSize?: number;
-  spaceId: string;
+  userId: string;
 }) => {
   const now = new Date();
   const todayStart = dayjs().startOf("day").utc().toDate();
 
   const where: Prisma.ScheduledEventWhereInput = {
-    ...buildBaseWhere(spaceId, search, member),
+    ...buildBaseWhere(userId, search, member),
     status: "confirmed",
     OR: [
       { allDay: false, start: { lt: now } },
@@ -217,16 +217,16 @@ export const getUnconfirmedEvents = async ({
   member,
   page = 1,
   pageSize = 20,
-  spaceId,
+  userId,
 }: {
   search?: string;
   member?: string;
   page?: number;
   pageSize?: number;
-  spaceId: string;
+  userId: string;
 }) => {
   const where: Prisma.ScheduledEventWhereInput = {
-    ...buildBaseWhere(spaceId, search, member),
+    ...buildBaseWhere(userId, search, member),
     status: "unconfirmed",
   };
 
@@ -261,16 +261,16 @@ export const getCanceledEvents = async ({
   member,
   page = 1,
   pageSize = 20,
-  spaceId,
+  userId,
 }: {
   search?: string;
   member?: string;
   page?: number;
   pageSize?: number;
-  spaceId: string;
+  userId: string;
 }) => {
   const where: Prisma.ScheduledEventWhereInput = {
-    ...buildBaseWhere(spaceId, search, member),
+    ...buildBaseWhere(userId, search, member),
     status: "canceled",
   };
 
@@ -306,16 +306,16 @@ export const getEventsChronological = async ({
   member,
   page = 1,
   pageSize = 20,
-  spaceId,
+  userId,
 }: {
   status?: Status;
   search?: string;
   member?: string;
   page?: number;
   pageSize?: number;
-  spaceId: string;
+  userId: string;
 }) => {
-  const commonParams = { search, member, page, pageSize, spaceId };
+  const commonParams = { search, member, page, pageSize, userId };
 
   switch (status) {
     case "upcoming":

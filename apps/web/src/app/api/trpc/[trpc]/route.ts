@@ -28,7 +28,6 @@ const handler = async (req: NextRequest) => {
     ja4Digest,
   });
 
-  // User context
   if (user) {
     event.userId = user.id;
     event.isGuest = user.isGuest;
@@ -41,7 +40,6 @@ const handler = async (req: NextRequest) => {
       router: appRouter,
       createContext: async () => {
         const locale = user?.locale ?? reqLocale;
-
         const identifier = user?.id ?? ja4Digest ?? ip;
 
         return {

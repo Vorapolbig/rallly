@@ -1,10 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import { isQuickCreateEnabled } from "@/features/quick-create";
-import { getActiveSpaceForUser } from "@/features/space/data";
 import { AppError } from "@/lib/errors";
 import { createRatelimit } from "@/lib/rate-limit";
-import { isSelfHosted } from "@/utils/constants";
 import type { TRPCContext } from "./context";
 
 const t = initTRPC.context<TRPCContext>().create({
@@ -26,21 +23,6 @@ export const router = t.router;
 export const middleware = t.middleware;
 
 export const publicProcedure = t.procedure;
-
-export const possiblyPublicProcedure = publicProcedure.use(
-  middleware(async ({ ctx, next }) => {
-    // These procedures are public if Quick Create is enabled
-    const isGuest = !ctx.user || ctx.user.isGuest;
-    if (isGuest && !isQuickCreateEnabled) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Login is required",
-      });
-    }
-
-    return next();
-  }),
-);
 
 // This procedure guarantees that a user will exist in the context
 export const requireUserMiddleware = middleware(async ({ ctx, next }) => {
@@ -65,6 +47,7 @@ export const requireUserMiddleware = middleware(async ({ ctx, next }) => {
   });
 });
 
+// All CF Access authenticated users are treated as authenticated
 export const privateProcedure = publicProcedure.use(async ({ ctx, next }) => {
   if (!ctx.user || ctx.user.isGuest !== false) {
     throw new TRPCError({
@@ -85,46 +68,6 @@ export const adminProcedure = privateProcedure.use(async ({ ctx, next }) => {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Admin access required",
-    });
-  }
-
-  return next();
-});
-
-export const spaceProcedure = privateProcedure.use(async ({ ctx, next }) => {
-  const space = await getActiveSpaceForUser(ctx.user.id);
-
-  if (!space) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "No active space found",
-    });
-  }
-
-  return next({
-    ctx: {
-      space,
-    },
-  });
-});
-
-export const proProcedure = spaceProcedure.use(async ({ ctx, next }) => {
-  if (!isSelfHosted && ctx.space.tier !== "pro") {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message:
-        "You must have an active paid subscription to perform this action",
-    });
-  }
-
-  return next();
-});
-
-export const spaceOwnerProcedure = spaceProcedure.use(async ({ ctx, next }) => {
-  if (ctx.space.ownerId !== ctx.user.id) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Only the space owner can perform this action",
     });
   }
 
