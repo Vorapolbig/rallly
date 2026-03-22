@@ -1,12 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
-import {
-  polls,
-  scheduledEvents,
-  spaceMembers,
-  spaces,
-  users,
-} from "./seed/data";
+import { polls, scheduledEvents, users } from "./seed/data";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -23,15 +17,7 @@ async function main() {
   await prisma.user.createMany({ data: users.map((u) => ({ ...u })) });
   console.info(`✓ ${users.length} users`);
 
-  // 2. Spaces
-  await prisma.space.createMany({ data: spaces });
-  console.info(`✓ ${spaces.length} spaces`);
-
-  // 3. Space members
-  await prisma.spaceMember.createMany({ data: spaceMembers });
-  console.info(`✓ ${spaceMembers.length} space members`);
-
-  // 4. Scheduled events + invites
+  // 2. Scheduled events + invites
   let inviteCount = 0;
   for (const evt of scheduledEvents) {
     const eventId = nextId();
@@ -50,7 +36,6 @@ async function main() {
         end: new Date(evt.end),
         allDay: evt.allDay,
         userId: evt.userId,
-        spaceId: evt.spaceId,
       },
     });
 
@@ -94,7 +79,6 @@ async function main() {
         timeZone: poll.timeZone,
         deadline: poll.deadline ? new Date(poll.deadline) : undefined,
         userId: poll.userId,
-        spaceId: poll.spaceId,
         adminUrlId,
         participantUrlId,
         hideParticipants: poll.hideParticipants,

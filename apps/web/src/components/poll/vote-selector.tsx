@@ -1,8 +1,9 @@
-import type { VoteType } from "@rallly/database";
 import { cn } from "@rallly/ui";
 import * as React from "react";
 
 import VoteIcon from "./vote-icon";
+
+type VoteType = "yes" | "no";
 
 export interface VoteSelectorProps {
   value?: VoteType;
@@ -13,7 +14,7 @@ export interface VoteSelectorProps {
   className?: string;
 }
 
-const orderedVoteTypes: VoteType[] = ["yes", "ifNeedBe", "no"];
+const orderedVoteTypes: VoteType[] = ["yes", "no"];
 
 export const toggleVote = (value?: VoteType) => {
   if (!value) return orderedVoteTypes[0];

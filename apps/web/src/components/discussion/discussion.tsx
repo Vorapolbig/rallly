@@ -53,7 +53,7 @@ function NewCommentForm({
 }) {
   const { t } = useTranslation();
   const poll = usePoll();
-  const { user, createGuestIfNeeded } = useUser();
+  const { user } = useUser();
   const { participants } = useParticipants();
 
   const authorName = React.useMemo(() => {
@@ -86,7 +86,6 @@ function NewCommentForm({
     <form
       className="w-full space-y-2.5"
       onSubmit={handleSubmit(async ({ authorName, content }) => {
-        await createGuestIfNeeded();
         await addComment.mutateAsync({ authorName, content, pollId });
         reset({ authorName, content: "" });
         onSubmit?.();

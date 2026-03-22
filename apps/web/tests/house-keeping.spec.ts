@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { prisma } from "@rallly/database";
 import dayjs from "dayjs";
-import { createSpaceInDb, createTestPoll, createUserInDb } from "./test-utils";
+import { createTestPoll, createUserInDb } from "./test-utils";
 
 /**
  * This test suite tests the house-keeping API endpoints:
@@ -53,31 +53,18 @@ test.describe("House-keeping API", () => {
     }
   }
 
-  test("should mark inactive polls as deleted except for polls in spaces with active subscriptions", async ({
+  test("should mark inactive polls as deleted", async ({
     request,
     baseURL,
   }) => {
-    // Create test users
+    // Create test user
     const freeUser = await createUserInDb({
       name: "Free User",
       email: "free-user@example.com",
     });
     createdUserIds.push(freeUser.id);
 
-    const spaceOwner = await createUserInDb({
-      name: "Space Owner",
-      email: "space-owner@example.com",
-    });
-    createdUserIds.push(spaceOwner.id);
-
-    // Create a space with an active subscription
-    const paidSpace = await createSpaceInDb({
-      name: "Paid Space",
-      ownerId: spaceOwner.id,
-      tier: "pro",
-    });
-
-    // Create test polls - These should be marked as deleted (free space, old, no future dates)
+    // Create test polls - These should be marked as deleted (old, no future dates)
     const oldPollFromFreeUser = await createTestPoll({
       id: "old-poll-free-user",
       title: "Old Poll from Free User",
@@ -94,15 +81,6 @@ test.describe("House-keeping API", () => {
     createdPollIds.push(oldPollNoUser.id);
 
     // These should NOT be marked as deleted
-    const oldPollInPaidSpace = await createTestPoll({
-      id: "old-poll-paid-space",
-      title: "Old Poll in Paid Space",
-      userId: spaceOwner.id,
-      spaceId: paidSpace.id,
-      updatedAt: dayjs().subtract(35, "day").toDate(),
-    });
-    createdPollIds.push(oldPollInPaidSpace.id);
-
     const recentPollFromFreeUser = await createTestPoll({
       id: "recent-poll-free-user",
       title: "Recent Poll from Free User",
@@ -144,7 +122,7 @@ test.describe("House-keeping API", () => {
     expect(responseData.success).toBeTruthy();
 
     // We expect 2 polls to be marked as deleted:
-    // - Old poll from free user (not in a paid space)
+    // - Old poll from free user
     // - Old poll without a user
     expect(responseData.summary.markedDeleted).toBe(2);
 
@@ -162,12 +140,6 @@ test.describe("House-keeping API", () => {
     expect(deletedPollNoUser?.deletedAt).not.toBeNull();
 
     // Verify polls that should NOT be marked as deleted
-    const protectedPollInPaidSpace = await prisma.poll.findUnique({
-      where: { id: oldPollInPaidSpace.id },
-    });
-    expect(protectedPollInPaidSpace?.deleted).toBe(false);
-    expect(protectedPollInPaidSpace?.deletedAt).toBeNull();
-
     const protectedRecentPoll = await prisma.poll.findUnique({
       where: { id: recentPollFromFreeUser.id },
     });

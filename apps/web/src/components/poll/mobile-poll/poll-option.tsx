@@ -2,7 +2,8 @@
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: fix later */
 /** biome-ignore-all lint/a11y/useFocusableInteractive: fix later */
 "use client";
-import type { VoteType } from "@rallly/database";
+type VoteType = "yes" | "no";
+
 import { cn } from "@rallly/ui";
 import { Button } from "@rallly/ui/button";
 import { Icon } from "@rallly/ui/icon";
@@ -26,7 +27,6 @@ import { VoteSelector } from "../vote-selector";
 export interface PollOptionProps {
   children?: React.ReactNode;
   yesScore: number;
-  ifNeedBeScore: number;
   editable?: boolean;
   vote?: VoteType;
   onChange: (vote: VoteType) => void;
@@ -44,18 +44,12 @@ const PollOptionVoteSummary: React.FunctionComponent<{ optionId: string }> = ({
     optionId,
     "yes",
   );
-  const participantsWhoVotedIfNeedBe = filterParticipantsByVote(
-    participants,
-    optionId,
-    "ifNeedBe",
-  );
   const participantsWhoVotedNo = filterParticipantsByVote(
     participants,
     optionId,
     "no",
   );
-  const noVotes =
-    participantsWhoVotedYes.length + participantsWhoVotedIfNeedBe.length === 0;
+  const noVotes = participantsWhoVotedYes.length === 0;
   return (
     <div>
       {noVotes ? (
@@ -82,25 +76,6 @@ const PollOptionVoteSummary: React.FunctionComponent<{ optionId: string }> = ({
                   />
                 </div>
                 <div className="truncate text-sm">{name}</div>
-              </div>
-            ))}
-            {participantsWhoVotedIfNeedBe.map(({ name, email, image }, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: Fix this later
-              <div key={i} className="flex">
-                <div className="relative mr-2.5 flex size-5 items-center justify-center">
-                  <OptimizedAvatarImage
-                    size="sm"
-                    name={name}
-                    email={email ?? undefined}
-                    src={image ?? undefined}
-                  />
-                  <VoteIcon
-                    type="ifNeedBe"
-                    size="sm"
-                    className="absolute bottom-full left-full -translate-x-1 translate-y-2 rounded-full bg-background"
-                  />
-                </div>
-                <div className="truncate text-sm"> {name}</div>
               </div>
             ))}
           </div>

@@ -33,7 +33,6 @@ import { useForm } from "react-hook-form";
 import useFormPersist from "react-hook-form-persist";
 import { useCopyToClipboard, useUnmount } from "react-use";
 import { PollSettingsForm } from "@/components/forms/poll-settings";
-import { useUser } from "@/components/user-provider";
 import { Trans, useTranslation } from "@/i18n/client";
 import { trpc } from "@/trpc/client";
 import type { NewEventData } from "./forms";
@@ -57,7 +56,6 @@ export interface CreatePollPageProps {
 export const CreatePoll: React.FunctionComponent = () => {
   const { t } = useTranslation();
   const posthog = usePostHog();
-  const { createGuestIfNeeded } = useUser();
   const [createdPollId, setCreatedPollId] = React.useState<string | null>(null);
   const [, copy] = useCopyToClipboard();
   const [didCopy, setDidCopy] = React.useState(false);
@@ -90,7 +88,6 @@ export const CreatePoll: React.FunctionComponent = () => {
       <form
         onSubmit={form.handleSubmit(async (formData) => {
           const title = required(formData?.title.trim());
-          await createGuestIfNeeded();
           const res = await makePoll.mutateAsync({
             title: title,
             location: formData?.location?.trim(),

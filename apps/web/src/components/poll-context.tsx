@@ -1,6 +1,8 @@
-import type { VoteType } from "@rallly/database";
 import { TrashIcon } from "lucide-react";
 import React from "react";
+
+type VoteType = "yes" | "no";
+
 import { useTranslation } from "@/i18n/client";
 import { dayjs } from "@/lib/dayjs";
 import type { GetPollApiResponse } from "@/trpc/client/types";
@@ -86,7 +88,9 @@ export const PollContextProvider: React.FunctionComponent<{
         const vote = participants
           .find((participant) => participant.id === participantId)
           ?.votes.find((vote) => vote.optionId === optionId);
-        return vote?.type;
+        const type = vote?.type;
+        if (type === "yes" || type === "no") return type;
+        return undefined;
       },
       getScore,
     };

@@ -19,10 +19,6 @@ function IconGuide() {
         <Trans i18nKey="yes" />
       </li>
       <li className="flex items-center gap-1.5">
-        <VoteIcon type="ifNeedBe" />
-        <Trans i18nKey="ifNeedBe" />
-      </li>
-      <li className="flex items-center gap-1.5">
         <VoteIcon type="no" />
         <Trans i18nKey="no" />
       </li>

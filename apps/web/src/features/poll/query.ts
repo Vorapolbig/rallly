@@ -4,7 +4,7 @@ export const hasPollAdminAccess = async (pollId: string, userId: string) => {
   const poll = await prisma.poll.findFirst({
     where: {
       id: pollId,
-      OR: [{ userId: userId }, { space: { members: { some: { userId } } } }],
+      userId: userId,
     },
     select: {
       id: true,

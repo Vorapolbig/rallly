@@ -63,27 +63,12 @@ export const deleteUserAction = adminActionClient
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        subscriptions: {
-          select: {
-            active: true,
-          },
-        },
-      },
     });
 
     if (!user) {
       throw new AppError({
         code: "NOT_FOUND",
         message: "User not found",
-      });
-    }
-
-    // Check if user has active subscriptions
-    if (user.subscriptions.some((subscription) => subscription.active)) {
-      throw new AppError({
-        code: "FORBIDDEN",
-        message: "User has active subscriptions",
       });
     }
 

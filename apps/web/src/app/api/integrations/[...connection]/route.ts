@@ -1,10 +1,10 @@
+import { getCurrentUser } from "@/auth/data";
 import { env } from "@/env";
 import {
   createCalendarConnection,
   syncCalendars,
 } from "@/features/calendars/mutations";
 import { saveOAuthCredentials } from "@/features/credentials/mutations";
-import { getSession } from "@/lib/auth";
 import { GoogleOAuthClient } from "@/lib/oauth/providers/google";
 import { OAuthIntegration } from "@/lib/oauth/server";
 
@@ -34,12 +34,12 @@ const { handler } = OAuthIntegration<Integration>({
             providerAccountId,
             userInfo,
           }) => {
-            const session = await getSession();
-            if (!session?.user) {
+            const user = await getCurrentUser();
+            if (!user) {
               throw new Error("User not found");
             }
 
-            const userId = session.user.id;
+            const userId = user.id;
 
             // save credentials to database
             const credential = await saveOAuthCredentials({

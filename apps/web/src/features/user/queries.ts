@@ -8,21 +8,11 @@ export const getUserCount = async () => {
   });
 };
 
-export const getUserHasPassword = async (userId: string) => {
-  const account = await prisma.account.findFirst({
-    where: {
-      userId,
-      provider: "credential",
-    },
-  });
-  return !!account;
+// Account model has been removed. CF Access handles authentication.
+export const getUserHasPassword = async (_userId: string) => {
+  return false;
 };
 
-export const getUserHasNoAccounts = async (userId: string) => {
-  const accountCount = await prisma.account.count({
-    where: {
-      userId,
-    },
-  });
-  return accountCount === 0;
+export const getUserHasNoAccounts = async (_userId: string) => {
+  return true;
 };

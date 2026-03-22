@@ -2,7 +2,7 @@
 
 import { prisma } from "@rallly/database";
 import { headers } from "next/headers";
-import { getUserIdIfLoggedIn } from "@/lib/auth";
+import { getCurrentUser } from "@/auth/data";
 
 /**
  * Server action to track a poll view
@@ -14,7 +14,8 @@ export async function trackPollView(pollId: string) {
     const userAgent = headersList.get("user-agent");
     const ip = headersList.get("x-forwarded-for") || "unknown";
 
-    const userId = await getUserIdIfLoggedIn();
+    const currentUser = await getCurrentUser();
+    const userId = currentUser?.id ?? null;
 
     await prisma.pollView.create({
       data: {

@@ -1,5 +1,7 @@
-import type { VoteType } from "@rallly/database";
 import { cn } from "@rallly/ui";
+
+type VoteType = "yes" | "no";
+
 import { Badge } from "@rallly/ui/badge";
 import { Button } from "@rallly/ui/button";
 import { Icon } from "@rallly/ui/icon";

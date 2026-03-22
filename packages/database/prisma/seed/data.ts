@@ -2,8 +2,6 @@ import type {
   PollStatus,
   ScheduledEventInviteStatus,
   ScheduledEventStatus,
-  SpaceMemberRole,
-  SpaceTier,
   VoteType,
 } from "../../generated/prisma/client";
 
@@ -43,32 +41,6 @@ export const users = [
   },
 ] as const;
 
-// ─── Spaces ──────────────────────────────────────────────────────────────────
-
-export const spaces: Array<{
-  id: string;
-  name: string;
-  ownerId: string;
-  tier: SpaceTier;
-}> = [
-  { id: "space-1", name: "Personal", ownerId: "user-1", tier: "hobby" },
-  { id: "space-2", name: "Acme Inc", ownerId: "user-1", tier: "pro" },
-];
-
-export const spaceMembers: Array<{
-  id: string;
-  spaceId: string;
-  userId: string;
-  role: SpaceMemberRole;
-}> = [
-  { id: "sm-1", spaceId: "space-1", userId: "user-1", role: "ADMIN" },
-  { id: "sm-2", spaceId: "space-2", userId: "user-1", role: "ADMIN" },
-  { id: "sm-3", spaceId: "space-2", userId: "user-2", role: "ADMIN" },
-  { id: "sm-4", spaceId: "space-2", userId: "user-3", role: "MEMBER" },
-  { id: "sm-5", spaceId: "space-2", userId: "user-4", role: "MEMBER" },
-  { id: "sm-6", spaceId: "space-2", userId: "user-5", role: "MEMBER" },
-];
-
 // ─── Poll definitions ────────────────────────────────────────────────────────
 // Each participant's `votes` array maps 1:1 with the `options` array.
 
@@ -80,7 +52,6 @@ export type PollDef = {
   timeZone?: string;
   deadline?: string;
   userId: string;
-  spaceId: string;
   hideParticipants?: boolean;
   hideScores?: boolean;
   disableComments?: boolean;
@@ -109,7 +80,6 @@ const personalPolls: PollDef[] = [
     status: "open",
     timeZone: "America/New_York",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-03-10T10:00:00Z", duration: 60 },
       { startTime: "2026-03-11T14:00:00Z", duration: 60 },
@@ -133,7 +103,6 @@ const personalPolls: PollDef[] = [
     description: "Need to book my six-month check-up.",
     status: "open",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-03-17T00:00:00Z", duration: 0 },
       { startTime: "2026-03-18T00:00:00Z", duration: 0 },
@@ -154,7 +123,6 @@ const personalPolls: PollDef[] = [
       "Planning a group hike at Bear Mountain. Bring water and sunscreen!",
     status: "open",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-03-14T00:00:00Z", duration: 0 },
       { startTime: "2026-03-15T00:00:00Z", duration: 0 },
@@ -205,7 +173,6 @@ const personalPolls: PollDef[] = [
     status: "closed",
     timeZone: "America/New_York",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-03-13T19:00:00Z", duration: 120 },
       { startTime: "2026-03-14T18:00:00Z", duration: 120 },
@@ -237,7 +204,6 @@ const personalPolls: PollDef[] = [
     timeZone: "America/New_York",
     deadline: "2026-03-15T00:00:00Z",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-03-18T19:00:00Z", duration: 90 },
       { startTime: "2026-03-19T19:00:00Z", duration: 90 },
@@ -295,7 +261,6 @@ const personalPolls: PollDef[] = [
     status: "scheduled",
     timeZone: "America/New_York",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-03-09T09:00:00Z", duration: 60 },
       { startTime: "2026-03-10T09:00:00Z", duration: 60 },
@@ -315,7 +280,6 @@ const personalPolls: PollDef[] = [
       "Beginner landscape photography workshop at the community center.",
     status: "open",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-03-21T00:00:00Z", duration: 0 },
       { startTime: "2026-03-22T00:00:00Z", duration: 0 },
@@ -345,7 +309,6 @@ const personalPolls: PollDef[] = [
       "Picking a weekend for the surprise party. Keep it secret from Jake!",
     status: "open",
     userId: "user-1",
-    spaceId: "space-1",
     options: [
       { startTime: "2026-04-04T00:00:00Z", duration: 0 },
       { startTime: "2026-04-05T00:00:00Z", duration: 0 },
@@ -421,7 +384,6 @@ const acmePolls: PollDef[] = [
     status: "open",
     timeZone: "America/New_York",
     userId: "user-1",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-31T13:00:00Z", duration: 120 },
       { startTime: "2026-04-01T13:00:00Z", duration: 120 },
@@ -474,7 +436,6 @@ const acmePolls: PollDef[] = [
     status: "open",
     timeZone: "America/New_York",
     userId: "user-2",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-12T14:00:00Z", duration: 60 },
       { startTime: "2026-03-13T14:00:00Z", duration: 60 },
@@ -511,7 +472,6 @@ const acmePolls: PollDef[] = [
     status: "closed",
     timeZone: "America/New_York",
     userId: "user-3",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-06T15:00:00Z", duration: 60 },
       { startTime: "2026-03-06T16:00:00Z", duration: 60 },
@@ -556,7 +516,6 @@ const acmePolls: PollDef[] = [
     status: "open",
     timeZone: "America/New_York",
     userId: "user-1",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-17T10:00:00Z", duration: 60 },
       { startTime: "2026-03-17T14:00:00Z", duration: 60 },
@@ -596,7 +555,6 @@ const acmePolls: PollDef[] = [
       "Picking a date for our spring team offsite. Thinking somewhere outdoors!",
     status: "open",
     userId: "user-1",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-04-14T00:00:00Z", duration: 0 },
       { startTime: "2026-04-15T00:00:00Z", duration: 0 },
@@ -658,7 +616,6 @@ const acmePolls: PollDef[] = [
     status: "open",
     timeZone: "America/New_York",
     userId: "user-1",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-11T15:00:00Z", duration: 30 },
       { startTime: "2026-03-12T15:00:00Z", duration: 30 },
@@ -685,7 +642,6 @@ const acmePolls: PollDef[] = [
     status: "closed",
     timeZone: "America/New_York",
     userId: "user-3",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-10T13:00:00Z", duration: 15 },
       { startTime: "2026-03-10T13:30:00Z", duration: 15 },
@@ -730,7 +686,6 @@ const acmePolls: PollDef[] = [
     status: "open",
     timeZone: "America/New_York",
     userId: "user-2",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-19T13:00:00Z", duration: 180 },
       { startTime: "2026-03-20T13:00:00Z", duration: 180 },
@@ -775,7 +730,6 @@ const acmePolls: PollDef[] = [
     status: "scheduled",
     timeZone: "America/New_York",
     userId: "user-1",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-28T14:00:00Z", duration: 120 },
       { startTime: "2026-03-31T14:00:00Z", duration: 120 },
@@ -820,7 +774,6 @@ const acmePolls: PollDef[] = [
     status: "open",
     timeZone: "America/New_York",
     userId: "user-5",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-13T12:00:00Z", duration: 60 },
       { startTime: "2026-03-14T12:00:00Z", duration: 60 },
@@ -883,7 +836,6 @@ const acmePolls: PollDef[] = [
     timeZone: "America/New_York",
     requireParticipantEmail: true,
     userId: "user-2",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-03-18T14:00:00Z", duration: 90 },
       { startTime: "2026-03-19T14:00:00Z", duration: 90 },
@@ -922,7 +874,6 @@ const acmePolls: PollDef[] = [
       "It's never too early! Let's lock down a date so we can book the venue.",
     status: "open",
     userId: "user-4",
-    spaceId: "space-2",
     options: [
       { startTime: "2026-12-12T00:00:00Z", duration: 0 },
       { startTime: "2026-12-13T00:00:00Z", duration: 0 },
@@ -995,7 +946,6 @@ export type ScheduledEventDef = {
   end: string;
   allDay: boolean;
   userId: string;
-  spaceId: string;
   invites?: Array<{
     inviteeName: string;
     inviteeEmail: string;
@@ -1016,7 +966,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-09T15:00:00Z",
     allDay: false,
     userId: "user-1",
-    spaceId: "space-1",
   },
   {
     title: "Dinner with Mom",
@@ -1027,7 +976,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-14T20:00:00Z",
     allDay: false,
     userId: "user-1",
-    spaceId: "space-1",
   },
   {
     title: "Weekend Hiking Trip",
@@ -1038,7 +986,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-16T00:00:00Z",
     allDay: true,
     userId: "user-1",
-    spaceId: "space-1",
     invites: [
       {
         inviteeName: "Jordan Lee",
@@ -1067,7 +1014,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-18T20:30:00Z",
     allDay: false,
     userId: "user-1",
-    spaceId: "space-1",
     invites: [
       {
         inviteeName: "Nadia Kowalski",
@@ -1100,7 +1046,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-10T10:00:00Z",
     allDay: false,
     userId: "user-1",
-    spaceId: "space-1",
   },
 
   // ── Acme Inc events ────────────────────────────────────────────────────────
@@ -1114,7 +1059,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-06T16:00:00Z",
     allDay: false,
     userId: "user-3",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Dev User",
@@ -1156,7 +1100,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-12T15:00:00Z",
     allDay: false,
     userId: "user-2",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Dev User",
@@ -1184,7 +1127,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-20T11:30:00Z",
     allDay: false,
     userId: "user-1",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Sarah Chen",
@@ -1218,7 +1160,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-04-16T00:00:00Z",
     allDay: true,
     userId: "user-1",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Sarah Chen",
@@ -1256,7 +1197,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-13T13:00:00Z",
     allDay: false,
     userId: "user-5",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Dev User",
@@ -1294,7 +1234,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-04-01T15:00:00Z",
     allDay: false,
     userId: "user-1",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Sarah Chen",
@@ -1331,7 +1270,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-07T18:00:00Z",
     allDay: false,
     userId: "user-3",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Dev User",
@@ -1358,7 +1296,6 @@ export const scheduledEvents: ScheduledEventDef[] = [
     end: "2026-03-19T16:00:00Z",
     allDay: false,
     userId: "user-2",
-    spaceId: "space-2",
     invites: [
       {
         inviteeName: "Dev User",

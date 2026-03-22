@@ -1,11 +1,11 @@
-import type { VoteType } from "@rallly/database";
 import { cn } from "@rallly/ui";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
-import { IfNeedBeIcon } from "@/components/vote-icon/if-need-be-icon";
 import { NoIcon } from "@/components/vote-icon/no-icon";
 import { PendingIcon } from "@/components/vote-icon/pending-icon";
 import { YesIcon } from "@/components/vote-icon/yes-icon";
+
+type VoteType = "yes" | "no";
 
 const iconVariants = cva("", {
   variants: {
@@ -30,8 +30,6 @@ const VoteIcon = ({
   switch (type) {
     case "yes":
       return <YesIcon className={cn(iconClassName, className)} />;
-    case "ifNeedBe":
-      return <IfNeedBeIcon className={cn(iconClassName, className)} />;
     case "no":
       return <NoIcon className={cn(iconClassName, className)} />;
 

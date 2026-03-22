@@ -1,4 +1,5 @@
-import type { VoteType } from "@rallly/database";
+type VoteType = "yes" | "no";
+
 import type * as React from "react";
 import { Controller } from "react-hook-form";
 import { useParticipants } from "@/components/participants-provider";
@@ -60,7 +61,6 @@ const PollOptions: React.FunctionComponent<PollOptions> = ({
                       onChange={handleChange}
                       optionId={option.optionId}
                       yesScore={score.yes}
-                      ifNeedBeScore={score.ifNeedBe}
                       vote={vote}
                       startTime={option.startTime}
                       endTime={option.endTime}
@@ -75,7 +75,6 @@ const PollOptions: React.FunctionComponent<PollOptions> = ({
                       onChange={handleChange}
                       optionId={option.optionId}
                       yesScore={score.yes}
-                      ifNeedBeScore={score.ifNeedBe}
                       vote={vote}
                       dow={option.dow}
                       day={option.day}

@@ -1,15 +1,15 @@
-import type { VoteType } from "@rallly/database";
+export type SimpleVoteType = "yes" | "no";
 
 export interface ParticipantForm {
   votes: Array<
     | {
         optionId: string;
-        type?: VoteType;
+        type?: SimpleVoteType;
       }
     | undefined
   >;
 }
 
 export interface ParticipantFormSubmitted {
-  votes: Array<{ optionId: string; type: VoteType }>;
+  votes: Array<{ optionId: string; type: SimpleVoteType }>;
 }

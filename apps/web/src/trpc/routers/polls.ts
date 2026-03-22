@@ -702,15 +702,16 @@ export const polls = router({
                     inviteeEmail: p.email as string,
                     inviteeTimeZone:
                       p.user?.timeZone ?? p.timeZone ?? poll.timeZone,
-                    status: (
-                      {
-                        yes: "accepted",
-                        no: "declined",
-                      } as const
-                    )[
-                      p.votes.find((v) => v.optionId === input.optionId)
-                        ?.type ?? "no"
-                    ] ?? "declined",
+                    status:
+                      (
+                        {
+                          yes: "accepted",
+                          no: "declined",
+                        } as const
+                      )[
+                        (p.votes.find((v) => v.optionId === input.optionId)
+                          ?.type ?? "no") as "yes" | "no"
+                      ] ?? "declined",
                   })),
               },
             },

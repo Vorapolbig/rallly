@@ -29,7 +29,7 @@ const formSchema = z.object({
     z
       .object({
         optionId: z.string(),
-        type: z.enum(["yes", "no", "ifNeedBe"]).optional(),
+        type: z.enum(["yes", "no"]).optional(),
       })
       .optional(),
   ),
@@ -62,7 +62,7 @@ export const useVotingForm = () => {
           votes: options.map((option) => ({
             optionId: option.id,
             type: participant.votes.find((vote) => vote.optionId === option.id)
-              ?.type,
+              ?.type as "yes" | "no" | undefined,
           })),
         });
       } else {

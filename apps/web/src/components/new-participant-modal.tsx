@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { VoteType } from "@rallly/database";
+
+type VoteType = "yes" | "no";
+
 import { cn } from "@rallly/ui";
 import { Badge } from "@rallly/ui/badge";
 import { Button } from "@rallly/ui/button";
@@ -56,7 +58,7 @@ const VoteSummary = ({
       acc[vote.type] = [...acc[vote.type], vote.optionId];
       return acc;
     },
-    { yes: [], ifNeedBe: [], no: [] },
+    { yes: [], no: [] },
   );
 
   const voteTypes = Object.keys(voteByType) as VoteType[];
@@ -92,7 +94,7 @@ export const NewParticipantForm = (props: NewParticipantModalProps) => {
 
   const isEmailRequired = poll.requireParticipantEmail;
   const { timeZone } = useDayjs();
-  const { user, createGuestIfNeeded } = useUser();
+  const { user } = useUser();
   const isLoggedIn = user && !user.isGuest;
   const form = useForm({
     resolver: zodResolver(schema),
@@ -115,7 +117,6 @@ export const NewParticipantForm = (props: NewParticipantModalProps) => {
       <form
         onSubmit={handleSubmit(async (data) => {
           try {
-            await createGuestIfNeeded();
             const newParticipant = await addParticipant.mutateAsync({
               name: data.name,
               votes: props.votes,
